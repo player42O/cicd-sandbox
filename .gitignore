@@ -1,0 +1,6 @@
+# Terraform local state and caches: never commit (state can hold secrets).
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
