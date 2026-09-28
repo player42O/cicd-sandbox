@@ -19,8 +19,8 @@ locals {
 
 data "aws_iam_policy_document" "github_trust" {
   for_each = {
-    plan  = ["repo:${var.github_repo}:pull_request"]
-    apply = [for env in ["dev", "prod"] : "repo:${var.github_repo}:environment:${env}"]
+    plan  = ["${var.github_oidc_subject_prefix}:pull_request"]
+    apply = [for env in ["dev", "prod"] : "${var.github_oidc_subject_prefix}:environment:${env}"]
   }
 
   statement {
