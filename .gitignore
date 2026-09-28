@@ -4,3 +4,5 @@
 *.tfstate.*
 *.tfvars
 crash.log
+*.plan
+plan-comment.md
