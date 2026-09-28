@@ -16,5 +16,6 @@ module "ecs_service" {
     APP_NAME  = "hello-service"
     GREETING  = "hello"
     LOG_LEVEL = var.environment == "prod" ? "info" : "debug"
+    FEATURE_X = "true"
   }
 }
