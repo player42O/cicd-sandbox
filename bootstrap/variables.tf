@@ -19,8 +19,13 @@ variable "monthly_budget_usd" {
   default = 5
 }
 
-variable "github_repo" {
-  description = "The only repo whose Actions jobs may assume the CI roles (owner/name)."
+variable "github_oidc_subject_prefix" {
+  description = <<-EOT
+    Start of the OIDC "sub" claim GitHub sends for this repo. New repos use the
+    immutable form repo:<owner>@<owner_id>/<repo>@<repo_id>, so a deleted and
+    re-created repo with the same name cannot assume the roles. Check with:
+    gh api repos/<owner>/<repo>/actions/oidc/customization/sub
+  EOT
   type        = string
-  default     = "player42O/cicd-sandbox"
+  default     = "repo:player42O@111375172/cicd-sandbox@1392262414"
 }
