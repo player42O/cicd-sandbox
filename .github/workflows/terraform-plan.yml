@@ -1,0 +1,55 @@
+name: terraform-plan
+
+# Runs on every PR (no path filter) because "plan" is a required check:
+# a filtered-out workflow would leave docs-only PRs waiting forever.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write      # OIDC token for AWS
+  pull-requests: write # post the plan as a PR comment
+
+concurrency:
+  group: plan-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  TF_VERSION: 1.16.4
+  AWS_REGION: ap-southeast-1
+  # Read-only role; its trust policy only accepts pull_request jobs from this repo.
+  PLAN_ROLE: arn:aws:iam::577101745164:role/cicd-sandbox-ci-plan
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.PLAN_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Format check
+        run: terraform fmt -check -recursive -diff terraform
+
+      - name: Plan dev and prod
+        id: plan
+        run: ./scripts/ci-plan.sh dev prod
+
+      - name: Comment plan on PR
+        if: always() && steps.plan.outcome != 'skipped'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        # Update the previous plan comment instead of adding a new one each push.
+        run: |
+          gh pr comment "$PR" --edit-last --body-file plan-comment.md 2>/dev/null \
+            || gh pr comment "$PR" --body-file plan-comment.md

@@ -1,0 +1,56 @@
+name: terraform-apply
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # OIDC token for AWS
+
+# One apply at a time, and never cancel one halfway.
+concurrency:
+  group: terraform-apply
+  cancel-in-progress: false
+
+env:
+  TF_VERSION: 1.16.4
+  AWS_REGION: ap-southeast-1
+  # Its trust policy only accepts jobs running in the dev/prod GitHub
+  # environments, and those environments only accept the main branch.
+  APPLY_ROLE: arn:aws:iam::577101745164:role/cicd-sandbox-ci-apply
+
+jobs:
+  dev:
+    runs-on: ubuntu-latest
+    environment: dev # automatic
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.APPLY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+      - run: ./scripts/ci-apply.sh dev
+
+  prod:
+    needs: dev
+    runs-on: ubuntu-latest
+    environment: prod # waits for a required reviewer to approve
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.APPLY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+      - run: ./scripts/ci-apply.sh prod
