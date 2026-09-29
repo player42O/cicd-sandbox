@@ -13,7 +13,9 @@ terraform/
   services/<svc>/     one wrapper per service; env vars live here
   envs/dev, envs/prod one state per environment
 scripts/
-  add-env-var.sh      add/change an env var and open the PR (one command)
+  ship.sh             ship any local edits: branch, fmt, commit, push, PR
+  add-env-var.sh      shortcut: edit one env var, then ship.sh
+  test-scripts.sh     tests for the two above (local only, pushes nothing)
   ci-plan.sh          used by CI: plan every env, write the PR comment
   ci-apply.sh         used by CI: plan + apply one env
 .github/workflows/
@@ -24,7 +26,9 @@ docs/                 manual vs automated flow
 
 ## Flow
 
-1. `./scripts/add-env-var.sh hello-service FEATURE_X true` opens a PR.
+1. Edit any files, then `./scripts/ship.sh "echo-service: raise timeout"`
+   opens a PR. For a single env var, `./scripts/add-env-var.sh hello-service
+   FEATURE_X true` does the edit too.
 2. CI posts the dev + prod plan on the PR (read-only AWS role).
 3. Merge → dev applies automatically.
 4. Approve the `prod` deployment in GitHub → prod applies.
