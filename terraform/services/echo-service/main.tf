@@ -19,6 +19,7 @@ module "ecs_service" {
       ECHO_PREFIX     = "[echo]"
       REQUEST_TIMEOUT = "30"
       MAX_RETRIES     = "3"
+      MAX_CONNECTIONS = "50"
     },
     var.extra_environment_variables
   )
