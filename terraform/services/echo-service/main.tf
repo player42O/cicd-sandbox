@@ -18,6 +18,7 @@ module "ecs_service" {
       LOG_LEVEL       = var.environment == "prod" ? "info" : "debug"
       ECHO_PREFIX     = "[echo]"
       REQUEST_TIMEOUT = "30"
+      MAX_RETRIES     = "3"
     },
     var.extra_environment_variables
   )
