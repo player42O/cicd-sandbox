@@ -9,6 +9,7 @@ root=$(git rev-parse --show-toplevel)
 out="$root/plan-comment.md"
 max_chars=30000 # GitHub comments are capped at 65536 characters
 failed=0
+changed=false
 
 {
   echo "## Terraform plan"
@@ -28,7 +29,7 @@ for env in "$@"; do
       -detailed-exitcode >"$log" 2>&1
     case $? in
       0) summary="No changes" ;;
-      2) summary=$(grep -E '^Plan:' "$log" | head -1) ;;
+      2) summary=$(grep -E '^Plan:' "$log" | head -1); changed=true ;;
       *) summary="FAILED"; failed=1 ;;
     esac
   fi
@@ -57,4 +58,6 @@ for env in "$@"; do
 done
 
 [ -n "${GITHUB_STEP_SUMMARY:-}" ] && cat "$out" >>"$GITHUB_STEP_SUMMARY"
+# For later steps, e.g. the drift check opens an issue when this is true.
+[ -n "${GITHUB_OUTPUT:-}" ] && echo "changed=$changed" >>"$GITHUB_OUTPUT"
 exit $failed
