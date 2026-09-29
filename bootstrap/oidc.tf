@@ -1,7 +1,9 @@
 # GitHub Actions signs in with short-lived OIDC tokens: no AWS keys stored in GitHub.
 #
 # Two roles, each trusted by exactly one repo and one kind of job:
-#   ci-plan  - pull request jobs; read-only, can plan but not change anything.
+#   ci-plan  - pull request jobs, and jobs on main outside an environment
+#              (prod plan before approval, nightly drift check); read-only,
+#              can plan but not change anything.
 #   ci-apply - jobs running in the dev/prod GitHub environments (prod has a
 #              required reviewer), so only approved deploys get write access.
 #
@@ -19,7 +21,10 @@ locals {
 
 data "aws_iam_policy_document" "github_trust" {
   for_each = {
-    plan  = ["${var.github_oidc_subject_prefix}:pull_request"]
+    plan = [
+      "${var.github_oidc_subject_prefix}:pull_request",
+      "${var.github_oidc_subject_prefix}:ref:refs/heads/main",
+    ]
     apply = [for env in ["dev", "prod"] : "${var.github_oidc_subject_prefix}:environment:${env}"]
   }
 

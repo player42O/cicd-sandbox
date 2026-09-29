@@ -1,5 +1,8 @@
 name: terraform-apply
 
+# dev applies right after merge. prod is planned next (read-only), and the
+# prod job then waits for approval, so the approver can read the prod plan in
+# this run's "plan-prod" summary before clicking Approve.
 on:
   push:
     branches: [main]
@@ -22,35 +25,53 @@ env:
   # Its trust policy only accepts jobs running in the dev/prod GitHub
   # environments, and those environments only accept the main branch.
   APPLY_ROLE: arn:aws:iam::577101745164:role/cicd-sandbox-ci-apply
+  # Read-only; accepts PR jobs and jobs on main outside an environment.
+  PLAN_ROLE: arn:aws:iam::577101745164:role/cicd-sandbox-ci-plan
 
 jobs:
   dev:
     runs-on: ubuntu-latest
     environment: dev # automatic
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           role-to-assume: ${{ env.APPLY_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
-      - run: ./scripts/ci-apply.sh dev
+      - run: bash scripts/ci-apply.sh dev
+
+  plan-prod:
+    needs: dev
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: ${{ env.PLAN_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Plan prod (shown in this run's summary)
+        run: bash scripts/ci-plan.sh prod
 
   prod:
-    needs: dev
+    needs: plan-prod
     runs-on: ubuntu-latest
     environment: prod # waits for a required reviewer to approve
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           role-to-assume: ${{ env.APPLY_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
-      - run: ./scripts/ci-apply.sh prod
+      - run: bash scripts/ci-apply.sh prod

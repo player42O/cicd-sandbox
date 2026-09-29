@@ -1,0 +1,7 @@
+# Opens PRs to bump the pinned GitHub Actions (SHA + version comment).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

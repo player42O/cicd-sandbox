@@ -1,0 +1,60 @@
+name: drift-check
+
+# Nightly read-only plan of every environment. If AWS no longer matches main
+# (someone changed it by hand, or an apply was rejected), open or update an
+# issue and fail the run, which also sends a GitHub notification.
+on:
+  schedule:
+    - cron: "0 1 * * *" # 01:00 UTC = 09:00 Singapore
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # OIDC token for AWS
+  issues: write   # open/update the drift issue
+
+concurrency:
+  group: drift-check
+  cancel-in-progress: true
+
+env:
+  TF_VERSION: 1.16.4
+  AWS_REGION: ap-southeast-1
+  PLAN_ROLE: arn:aws:iam::577101745164:role/cicd-sandbox-ci-plan
+  ISSUE_TITLE: "Drift detected: AWS differs from main"
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: ${{ env.PLAN_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Plan dev and prod
+        id: plan
+        run: bash scripts/ci-plan.sh dev prod
+
+      - name: Open or update the drift issue
+        if: steps.plan.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          n=$(gh issue list --state open --search "in:title \"$ISSUE_TITLE\"" --json number --jq '.[0].number // empty')
+          if [ -n "$n" ]; then
+            gh issue comment "$n" --body-file plan-comment.md
+          else
+            gh issue create --title "$ISSUE_TITLE" --body-file plan-comment.md
+          fi
+
+      - name: Fail the run when drift is found
+        if: steps.plan.outputs.changed == 'true'
+        run: |
+          echo "::error::Drift detected. See the issue: '$ISSUE_TITLE'. Fix by merging a PR, or re-run terraform-apply."
+          exit 1
