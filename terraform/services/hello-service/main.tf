@@ -13,9 +13,10 @@ module "ecs_service" {
 
   # Environment variables
   environment_variables = {
-    APP_NAME  = "hello-service"
-    GREETING  = "hello"
-    LOG_LEVEL = var.environment == "prod" ? "info" : "debug"
-    FEATURE_X = "true"
+    APP_NAME    = "hello-service"
+    GREETING    = "hello"
+    LOG_LEVEL   = var.environment == "prod" ? "info" : "debug"
+    FEATURE_X   = "true"
+    MIN_RETRIES = "1"
   }
 }
