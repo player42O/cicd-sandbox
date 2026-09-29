@@ -42,7 +42,7 @@ jobs:
         with:
           role-to-assume: ${{ env.APPLY_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
-      - run: ./scripts/ci-apply.sh dev
+      - run: bash scripts/ci-apply.sh dev
 
   plan-prod:
     needs: dev
@@ -58,7 +58,7 @@ jobs:
           role-to-assume: ${{ env.PLAN_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
       - name: Plan prod (shown in this run's summary)
-        run: ./scripts/ci-plan.sh prod
+        run: bash scripts/ci-plan.sh prod
 
   prod:
     needs: plan-prod
@@ -74,4 +74,4 @@ jobs:
         with:
           role-to-assume: ${{ env.APPLY_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
-      - run: ./scripts/ci-apply.sh prod
+      - run: bash scripts/ci-apply.sh prod

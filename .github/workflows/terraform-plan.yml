@@ -42,7 +42,7 @@ jobs:
 
       - name: Plan dev and prod
         id: plan
-        run: ./scripts/ci-plan.sh dev prod
+        run: bash scripts/ci-plan.sh dev prod
 
       - name: Comment plan on PR
         if: always() && steps.plan.outcome != 'skipped'
