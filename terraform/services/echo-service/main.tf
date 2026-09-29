@@ -21,9 +21,8 @@ module "ecs_service" {
       MAX_RETRIES     = "3"
       MAX_CONNECTIONS = "50"
       MAX_IDLE_TIME   = "60"
-    
 
     },
-    var.extra_environment_variables
+    #var.extra_environment_variables
   )
 }
